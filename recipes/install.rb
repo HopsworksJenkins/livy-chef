@@ -20,7 +20,7 @@ group node['livy']['group'] do
 end
 
 user node['livy']['user'] do
-  home "/home/#{node['livy']['user']}"
+  home node['livy']['user-home']
   gid node['livy']['group']
   action :create
   shell "/bin/bash"
@@ -29,16 +29,24 @@ user node['livy']['user'] do
   not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
-group node['kagent']['certs_group'] do
+group node['hops']['group'] do
   action :modify
   members ["#{node['livy']['user']}"]
   append true
   not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
-group node['hops']['group'] do
+# user livy needs to be member of certs group to be able
+# to read user certificates from transient directory
+group node['kagent']['certs_group'] do
+  action :create
+  not_if "getent group #{node['kagent']['certs_group']}"
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
+end
+
+group node['kagent']['certs_group'] do
   action :modify
-  members ["#{node['livy']['user']}"]
+  members node['livy']['user']
   append true
   not_if { node['install']['external_users'].casecmp("true") == 0 }
 end

@@ -1,9 +1,23 @@
 
 my_ip = my_private_ip()
 nn_endpoint = private_recipe_ip("hops", "nn") + ":#{node['hops']['nn']['port']}"
+
+group node['livy']['group'] do
+  action :modify
+  members node['kagent']['certs_user']
+  append true
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
+end
+
+kagent_hopsify "Generate x.509" do
+  user node['livy']['user']
+  group node['livy']['group']
+  crypto_directory x509_helper.get_crypto_dir(node['livy']['user-home'])
+  action :generate_x509
+  not_if { conda_helpers.is_upgrade || node["kagent"]["test"] == true }
+end
+
 home = node['hops']['hdfs']['user_home']
-
-
 livy_dir="#{home}/#{node['livy']['user']}"
 hops_hdfs_directory "#{livy_dir}" do
   action :create_as_superuser
